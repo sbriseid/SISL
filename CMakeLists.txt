@@ -6,10 +6,27 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS ON)
 
 
+
+find_package(OpenGL REQUIRED)
+find_path(OPENGL_INCLUDE_DIR
+  gl.h
+  PATH_PREFIXES GL
+  PATHS
+  /usr/local/include
+  /usr/include
+  "$ENV{HOME}\\Install\\include" # For some reason HOME is not found in VS 2019.
+  "C:\\Users\\$ENV{USERNAME}\\Install\\include")
+
+find_package(GLUT REQUIRED)
+
 # Include directories
 
 INCLUDE_DIRECTORIES(
   ${sisl_SOURCE_DIR}/include
+  ${sisl_SOURCE_DIR}/examples/streaming/include
+  ${sisl_SOURCE_DIR}/examples/viewer/include
+  ${OPENGL_INCLUDE_DIR}
+  ${GLUT_INCLUDE_DIR}
   )
 
 
@@ -44,11 +61,46 @@ ENDIF(WIN32)
 
 FILE(GLOB sisl_APPS app/*.C)
 FOREACH(app ${sisl_APPS})
+  message("app: " ${app})
   GET_FILENAME_COMPONENT(appname ${app} NAME_WE)
   ADD_EXECUTABLE(${appname} ${app})
   TARGET_LINK_LIBRARIES(${appname} sisl)
-  SET_PROPERTY(TARGET ${appname}
-    PROPERTY FOLDER "sisl/Apps")
+  SET_TARGET_PROPERTIES(${appname}
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY app)
+ENDFOREACH(app)
+
+FILE(GLOB sisl_go_SRCS examples/streaming/src/*.cpp examples/streaming/include/*.h)
+ADD_LIBRARY(sisl_go ${sisl_go_SRCS})
+# IF(CMAKE_COMPILER_IS_GNUCC)
+#     TARGET_LINK_LIBRARIES(sisl_go m)
+# ENDIF(CMAKE_COMPILER_IS_GNUCC)
+
+FILE(GLOB sisl_APPS2 examples/*.cpp)
+FOREACH(app ${sisl_APPS2})
+  message("app: " ${app})
+  GET_FILENAME_COMPONENT(appname ${app} NAME_WE)
+  ADD_EXECUTABLE(${appname} ${app})
+  TARGET_LINK_LIBRARIES(${appname} sisl sisl_go)
+  SET_TARGET_PROPERTIES(${appname}
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY examples)
+ENDFOREACH(app)
+
+FILE(GLOB sisl_viewer_SRCS examples/viewer/src/*.cpp examples/viewer/include/*.h)
+ADD_LIBRARY(sisl_viewer ${sisl_viewer_SRCS})
+IF(CMAKE_COMPILER_IS_GNUCC)
+  TARGET_LINK_LIBRARIES(sisl_go sisl)
+ENDIF(CMAKE_COMPILER_IS_GNUCC)
+message("OPENGL_LIBRARIES:"  ${OPENGL_LIBRARIES})
+
+
+FILE(GLOB sisl_APPS3 examples/viewer/*.cpp)
+FOREACH(app ${sisl_APPS3})
+  message("app: " ${app})
+  GET_FILENAME_COMPONENT(appname ${app} NAME_WE)
+  ADD_EXECUTABLE(${appname} ${app})
+  TARGET_LINK_LIBRARIES(${appname} sisl sisl_go sisl_viewer ${OPENGL_LIBRARIES} glut)
+  SET_TARGET_PROPERTIES(${appname}
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY viewer)
 ENDFOREACH(app)
 
 
