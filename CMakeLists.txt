@@ -5,28 +5,14 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 # Organize the project in folders (VS only?)
 SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS ON)
 
-
-
-find_package(OpenGL REQUIRED)
-find_path(OPENGL_INCLUDE_DIR
-  gl.h
-  PATH_PREFIXES GL
-  PATHS
-  /usr/local/include
-  /usr/include
-  "$ENV{HOME}\\Install\\include" # For some reason HOME is not found in VS 2019.
-  "C:\\Users\\$ENV{USERNAME}\\Install\\include")
-
-find_package(GLUT REQUIRED)
-
 # Include directories
 
 INCLUDE_DIRECTORIES(
   ${sisl_SOURCE_DIR}/include
-  ${sisl_SOURCE_DIR}/examples/streaming/include
-  ${sisl_SOURCE_DIR}/examples/viewer/include
-  ${OPENGL_INCLUDE_DIR}
-  ${GLUT_INCLUDE_DIR}
+  # ${sisl_SOURCE_DIR}/examples/streaming/include
+  # ${sisl_SOURCE_DIR}/viewer/include
+  # ${OPENGL_INCLUDE_DIR}
+  # ${GLUT_INCLUDE_DIR}
   )
 
 
@@ -59,50 +45,80 @@ ENDIF(WIN32)
 
 # Apps, examples, tests, ...?
 
-FILE(GLOB sisl_APPS app/*.C)
-FOREACH(app ${sisl_APPS})
-  message("app: " ${app})
-  GET_FILENAME_COMPONENT(appname ${app} NAME_WE)
-  ADD_EXECUTABLE(${appname} ${app})
-  TARGET_LINK_LIBRARIES(${appname} sisl)
-  SET_TARGET_PROPERTIES(${appname}
-    PROPERTIES RUNTIME_OUTPUT_DIRECTORY app)
-ENDFOREACH(app)
+option(sisl_COMPILE_APPS "Compile apps?" OFF)
 
-FILE(GLOB sisl_go_SRCS examples/streaming/src/*.cpp examples/streaming/include/*.h)
-ADD_LIBRARY(sisl_go ${sisl_go_SRCS})
-# IF(CMAKE_COMPILER_IS_GNUCC)
-#     TARGET_LINK_LIBRARIES(sisl_go m)
-# ENDIF(CMAKE_COMPILER_IS_GNUCC)
+option(sisl_COMPILE_EXAMPLES "Compile examples?" OFF)
 
-FILE(GLOB sisl_APPS2 examples/*.cpp)
-FOREACH(app ${sisl_APPS2})
-  message("app: " ${app})
-  GET_FILENAME_COMPONENT(appname ${app} NAME_WE)
-  ADD_EXECUTABLE(${appname} ${app})
-  TARGET_LINK_LIBRARIES(${appname} sisl sisl_go)
-  SET_TARGET_PROPERTIES(${appname}
-    PROPERTIES RUNTIME_OUTPUT_DIRECTORY examples)
-ENDFOREACH(app)
+option(sisl_COMPILE_VIEWER "Compile viewer?" OFF)
 
-FILE(GLOB sisl_viewer_SRCS examples/viewer/src/*.cpp examples/viewer/include/*.h)
-ADD_LIBRARY(sisl_viewer ${sisl_viewer_SRCS})
-IF(CMAKE_COMPILER_IS_GNUCC)
-  TARGET_LINK_LIBRARIES(sisl_go sisl)
-ENDIF(CMAKE_COMPILER_IS_GNUCC)
-message("OPENGL_LIBRARIES:"  ${OPENGL_LIBRARIES})
+IF(sisl_COMPILE_APPS)
+  FILE(GLOB sisl_APPS app/*.C)
+  FOREACH(app ${sisl_APPS})
+    GET_FILENAME_COMPONENT(appname ${app} NAME_WE)
+    ADD_EXECUTABLE(${appname} ${app})
+    TARGET_LINK_LIBRARIES(${appname} sisl)
+    SET_TARGET_PROPERTIES(${appname}
+      PROPERTIES RUNTIME_OUTPUT_DIRECTORY app)
+  ENDFOREACH(app)
+ENDIF()
 
+IF(sisl_COMPILE_EXAMPLES)
+  INCLUDE_DIRECTORIES(
+    ${sisl_SOURCE_DIR}/examples/streaming/include
+    )
 
-FILE(GLOB sisl_APPS3 examples/viewer/*.cpp)
-FOREACH(app ${sisl_APPS3})
-  message("app: " ${app})
-  GET_FILENAME_COMPONENT(appname ${app} NAME_WE)
-  ADD_EXECUTABLE(${appname} ${app})
-  TARGET_LINK_LIBRARIES(${appname} sisl sisl_go sisl_viewer ${OPENGL_LIBRARIES} glut)
-  SET_TARGET_PROPERTIES(${appname}
-    PROPERTIES RUNTIME_OUTPUT_DIRECTORY viewer)
-ENDFOREACH(app)
+  FILE(GLOB sisl_go_SRCS examples/streaming/src/*.cpp examples/streaming/include/*.h)
+  ADD_LIBRARY(sisl_go ${sisl_go_SRCS})
+  # IF(CMAKE_COMPILER_IS_GNUCC)
+  #     TARGET_LINK_LIBRARIES(sisl_go m)
+  # ENDIF(CMAKE_COMPILER_IS_GNUCC)
 
+  FILE(GLOB sisl_APPS2 examples/*.cpp)
+  FOREACH(app ${sisl_APPS2})
+    GET_FILENAME_COMPONENT(appname ${app} NAME_WE)
+    ADD_EXECUTABLE(${appname} ${app})
+    TARGET_LINK_LIBRARIES(${appname} sisl sisl_go)
+    SET_TARGET_PROPERTIES(${appname}
+      PROPERTIES RUNTIME_OUTPUT_DIRECTORY examples)
+  ENDFOREACH(app)
+ENDIF()
+
+IF(sisl_COMPILE_VIEWER)
+
+  find_package(OpenGL REQUIRED)
+  find_path(OPENGL_INCLUDE_DIR
+    gl.h
+    PATH_PREFIXES GL
+    PATHS
+    /usr/local/include
+    /usr/include
+    "$ENV{HOME}\\Install\\include" # For some reason HOME is not found in VS 2019.
+    "C:\\Users\\$ENV{USERNAME}\\Install\\include")
+
+  find_package(GLUT REQUIRED)
+
+  INCLUDE_DIRECTORIES(
+    ${sisl_SOURCE_DIR}/examples/streaming/include
+    ${sisl_SOURCE_DIR}/viewer/include
+    ${OPENGL_INCLUDE_DIR}
+    ${GLUT_INCLUDE_DIR}
+    )
+
+  FILE(GLOB sisl_viewer_SRCS viewer/src/*.cpp viewer/include/*.h)
+  ADD_LIBRARY(sisl_viewer ${sisl_viewer_SRCS})
+  IF(CMAKE_COMPILER_IS_GNUCC)
+    TARGET_LINK_LIBRARIES(sisl_go sisl)
+  ENDIF(CMAKE_COMPILER_IS_GNUCC)
+
+  FILE(GLOB sisl_APPS3 viewer/*.cpp)
+  FOREACH(app ${sisl_APPS3})
+    GET_FILENAME_COMPONENT(appname ${app} NAME_WE)
+    ADD_EXECUTABLE(${appname} ${app})
+    TARGET_LINK_LIBRARIES(${appname} sisl sisl_go sisl_viewer ${OPENGL_LIBRARIES} glut)
+    SET_TARGET_PROPERTIES(${appname}
+      PROPERTIES RUNTIME_OUTPUT_DIRECTORY viewer)
+  ENDFOREACH(app)
+ENDIF()
 
 
 # 'install' target
